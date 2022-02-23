@@ -1,0 +1,34 @@
+/* This code below is my best practice suggestion for a newly created Reader Account in Snowflake.  It is imperative that you go in as an administrator and create the warehouse with credit limits and that you also create users with limited query access.  */
+
+CREATE WAREHOUSE READER_WH WITH WAREHOUSE_SIZE = 'XSMALL' WAREHOUSE_TYPE = 'STANDARD' AUTO_SUSPEND = 1 AUTO_RESUME = TRUE COMMENT = 'Snowflake Solutions Data Sharing Warehouse';
+
+/* Our best practice is always to create a Resource Monitor per warehouse.  In this example below we created a READER_WH_RM resource monitor to monitor and suspend the READER_WH we just created above on the reader account.  This resource monitor has a credit limit of 5 credits over one calendar month.  The resource monitor named READER_WH_RM has three settings of 90% notify the ACCOUNTADMIN, at 95% of the 5 credits it will suspend after query at 90% and it will suspend immediately at 100% usage of 5 credits.  Remember, resource monitors currently are very limited on who they can notify.  Also, you must make sure you set yourself up for notifications on this Reader Account to get them. See Notifications setting at the reader account:  https://<account_name>.snowflakecomputing.com/console#/preferences
+*/
+
+CREATE RESOURCE MONITOR "READER_WH_RM" WITH CREDIT_QUOTA = 5, frequency = 'MONTHLY', start_timestamp = 'IMMEDIATELY', end_timestamp = null 
+TRIGGERS 
+ON 95 PERCENT DO SUSPEND 
+ON 100 PERCENT DO SUSPEND_IMMEDIATE 
+ON 90 PERCENT DO NOTIFY;
+ALTER WAREHOUSE "READER_WH" SET RESOURCE_MONITOR = "READER_WH_RM";
+
+/*
+Reader Account [Also, Data Consumer] – Initial Setup - Creating Users with Only Query Access to CITIBIKE Database
+Now that you have created a warehouse that is constrained to 5 credits let’s create a reader account user which can only access the Citibike Database based on the Data Share.  
+*/
+
+CREATE USER READER_QUERY_USER PASSWORD = 'ENTER_YOUR_PWD_HERE' COMMENT = 'Citibike Example Reader Query Only User' LOGIN_NAME = 'READER_QUERY_USER' DISPLAY_NAME = 'READER_QUERY_USER' FIRST_NAME = 'FnameReader' LAST_NAME = 'LnameReader' EMAIL = 'fname.lname@reader.com' DEFAULT_ROLE = "PUBLIC" DEFAULT_WAREHOUSE = 'READER_WH' DEFAULT_NAMESPACE = 'ANALYTICS_DB' MUST_CHANGE_PASSWORD = TRUE;
+
+/* Notice.  We only GRANT this user the role of PUBLIC to make sure they cannot create new warehouses or other functionality that read only partner would not need. */
+
+GRANT ROLE "PUBLIC" TO USER READER_QUERY_USER;
+
+/* To make it easy for the user named READER_QUERY_USER with the PUBLIC role to access the Database S_CITIBIKE then let’s grant their PUBLIC role access.
+*/
+
+GRANT IMPORTED PRIVILEGES ON DATABASE "S_CITIBIKE" TO ROLE "PUBLIC";
+
+/*. Finally, you need to GRANT USAGE to READER_WH so the read only user can run queries.  You do this by granting usage to the PUBLIC role assigned to the READER_QUERY_USER.  Now this READER_QUERY_USER user can only use the READER_WH with the 5 credits limit over the calendar month.  You can add additional users to use the same warehouse as well by assigning them the PUBLIC role.  Overall, your cost exposure now is 5 credits per month.
+*/
+
+GRANT USAGE ON WAREHOUSE "READER_WH" TO ROLE "PUBLIC";

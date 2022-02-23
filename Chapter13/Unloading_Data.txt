@@ -1,0 +1,96 @@
+/*  Snowflake Essentials.  Chapter 13.
+	Unloading or Exporting Data Sample Code
+	With every Snowflake Account there are sample datasets 
+	for TPC-H and TPC-DS in the SNOWFLAKE_SAMPLE_DATA database.  
+	We will use the TPC-H Data Set for this chapter.
+	http://www.tpc.org/tpch/
+	Let's first go into the DEMO_DB database.
+*/
+
+USE ROLE SYSADMIN;
+USE DATABASE DEMO_DB;
+/* 	Notice how the DEMO_DB defaults to the PUBLIC Schema
+	If you did not default to you schema you would 
+	have to use an additional USE SCHEMA YOUR_SCHEMA; comand
+	Let's create the Internal stage we will use for our examples.
+*/
+
+CREATE STAGE "DEMO_DB"."PUBLIC".OUTBOUND_INT_STAGE 
+COMMENT = 'Outbound Internal Named Stage';
+
+/*  UNLOADING - EXPORTING DATA.
+	Let's use the COPY INTO <Location> Command and
+	Unload data into the new Internal Stage we just created.
+*/
+
+-- Minimum Cost Supplier Query
+COPY INTO @OUTBOUND_INT_STAGE/MINCOSTSUPPLIER.CSV
+from
+(select
+	s_acctbal,
+	s_name,
+	n_name,
+	p_partkey,
+	p_mfgr,
+	s_address,
+	s_phone,
+	s_comment
+from
+	snowflake_sample_data.tpch_sf10.part,
+	snowflake_sample_data.tpch_sf10.supplier,
+	snowflake_sample_data.tpch_sf10.partsupp,
+	snowflake_sample_data.tpch_sf10.nation,
+	snowflake_sample_data.tpch_sf10.region
+where
+	p_partkey = ps_partkey
+	and s_suppkey = ps_suppkey
+	and p_size = 10
+	and p_type like 'ECONOMY BURNISHED COPPER'
+	and s_nationkey = n_nationkey
+	and n_regionkey = r_regionkey
+	and r_name = 'AMERICA'
+	and ps_supplycost = (
+		select
+			min(ps_supplycost)
+		from
+			snowflake_sample_data.tpch_sf10.partsupp,
+			snowflake_sample_data.tpch_sf10.supplier,
+			snowflake_sample_data.tpch_sf10.nation,
+			snowflake_sample_data.tpch_sf10.region
+		where
+			p_partkey = ps_partkey
+			and s_suppkey = ps_suppkey
+			and s_nationkey = n_nationkey
+			and n_regionkey = r_regionkey
+			and r_name = 'AMERICA'
+	)
+order by
+	s_acctbal desc,
+	n_name,
+	s_name,
+	p_partkey
+)
+single=TRUE;
+
+
+/*  Now that we successfully UNLOADED the data through the 
+	COPY INTO <Location> Command let's verify its actually on the 
+	@OUTBOUND_INT_STAGE Internal stage with a list command.
+*/
+
+LIST @OUTBOUND_INT_STAGE;
+
+/*  You should see the file you just unloaded the data to.
+
+	Now if you wanted to copy the file to your local file system
+	from the Internal stage  you need to use Snowsql and the 
+	GET Command.  REMEMBER, you cannot use GET or PUT from the web interface.
+	Below is the get command.
+*/
+
+GET @outbound_int_stage file://c:\temp;
+
+/*  Now view the files you have downloaded to your local system 
+*/
+
+

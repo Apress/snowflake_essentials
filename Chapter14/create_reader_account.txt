@@ -1,0 +1,6 @@
+/* CREATING A READER ACCOUNT which is a MANAGED Account that you the READER ACCOUNT CREATOR pay for usage.  
+Data Provider Account – Creating Reader Accounts
+CREATE MANAGED ACCOUNT CITIBIKE_READER admin_name='READER_ADMIN', admin_password='ENTER_SECURE_PWD', type=reader, COMMENT='Citibike Example Reader Account';
+Reader Account [Also, Data Consumer] – Initial Setup - Creating Limits on Reader Compute (Warehouses)
+
+

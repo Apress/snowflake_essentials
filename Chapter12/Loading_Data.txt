@@ -1,0 +1,201 @@
+/*  Creating ANALYTICS_DB Example Database to 
+    load the Citi Bike Historical Data
+*/
+
+USE ROLE SYSADMIN;
+CREATE DATABASE ANALYTICS_DB
+COMMENT = 'Database for Citibike Data';
+
+/*  Creating CITIBIKE SCHEMA within ANALYTICS_DB to 
+    load the Citi Bike Historical Data
+*/
+
+CREATE SCHEMA CITIBIKE
+COMMENT = 'Database for Citibike Data';
+
+/*  Creating CITIBIKE SCHEMA within ANALYTICS_DB to 
+    load the Citi Bike Historical Data
+*/
+
+CREATE TABLE "ANALYTICS_DB"."CITIBIKE"."CITIBIKE_NYC"
+("RIDE_ID" STRING, 
+ "RIDEABLE_TYPE" STRING, 
+ "STARTED_AT" TIMESTAMP, 
+ "ENDED_AT" TIMESTAMP, 
+ "START_STATION_NAME" STRING, 
+ "START_STATION_ID" STRING, 
+ "END_STATION_NAME" STRING, 
+ "END_STATION_ID" STRING,
+ "START_LAT" DECIMAL(8,6), 
+ "START_LNG" DECIMAL(9,6), 
+ "END_LAT" DECIMAL(8,6), 
+ "END_LNG" DECIMAL(9,6), 
+ "MEMBER_CASUAL" STRING) 
+ COMMENT = 'Table for CitiBike NYC Data';
+ 
+/*  In order for us to load files into a table we need to 
+	create a File Format object which describes the files
+	to be loaded with a COPY INTO command.
+*/
+--Create a File Format
+ CREATE FILE FORMAT "ANALYTICS_DB"."CITIBIKE".CSV_FILE_FORMAT 
+ TYPE = 'CSV' 
+ COMPRESSION = 'AUTO' 
+ FIELD_DELIMITER = ',' 
+ RECORD_DELIMITER = '\n' 
+ SKIP_HEADER = 1 
+ FIELD_OPTIONALLY_ENCLOSED_BY = 'NONE' 
+ TRIM_SPACE = FALSE 
+ ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE 
+ ESCAPE = 'NONE' 
+ ESCAPE_UNENCLOSED_FIELD = '\134' 
+ DATE_FORMAT = 'AUTO' 
+ TIMESTAMP_FORMAT = 'AUTO' 
+ NULL_IF = ('\\N');
+
+/*  In order for us to load files into a table we also 
+	need to stage the data.  In this example we will create
+	a Snowflake Internal Stage. 
+*/
+
+CREATE STAGE "ANALYTICS_DB"."CITIBIKE".SNFK_INTERNAL_STAGE 
+COMMENT = 'Snowflake Managed Named Internal Stage'; 
+ 
+/*  Go through an exercise to drop the database.
+    Understand how the Database is the container 
+    and all objects within it are dropped as well.
+*/
+USE ROLE SYSADMIN;
+-- THE FOLLOWING COMMAND DROPS THE DATABASE 
+-- AND ALL THE OBJECTS WITHIN.
+DROP DATABASE ANALYTICS_DB;  
+
+
+/*  Recreate the database, schema, table, file format, and stage
+*/
+USE ROLE SYSADMIN;
+--CREATE A DATABASE
+CREATE DATABASE ANALYTICS_DB COMMENT="Database for Citibike Data";
+CREATE SCHEMA  CITIBIKE COMMENT="Schema for Citibike Data";
+USE DATABASE ANALYTICS_DB;
+USE SCHEMA CITIBIKE;
+
+--Create a Table
+CREATE TABLE "ANALYTICS_DB"."CITIBIKE"."CITIBIKE_NYC"
+("RIDE_ID" STRING, 
+ "RIDEABLE_TYPE" STRING, 
+ "STARTED_AT" TIMESTAMP, 
+ "ENDED_AT" TIMESTAMP, 
+ "START_STATION_NAME" STRING, 
+ "START_STATION_ID" STRING, 
+ "END_STATION_NAME" STRING, 
+ "END_STATION_ID" STRING,
+ "START_LAT" DECIMAL(8,6), 
+ "START_LNG" DECIMAL(9,6), 
+ "END_LAT" DECIMAL(8,6), 
+ "END_LNG" DECIMAL(9,6), 
+ "MEMBER_CASUAL" STRING) 
+ COMMENT = 'Table for CitiBike NYC Data';
+ 
+--Create a File Format
+ CREATE FILE FORMAT "ANALYTICS_DB"."CITIBIKE".CSV_FILE_FORMAT 
+ TYPE = 'CSV' 
+ COMPRESSION = 'AUTO' 
+ FIELD_DELIMITER = ',' 
+ RECORD_DELIMITER = '\n' 
+ SKIP_HEADER = 1 
+ FIELD_OPTIONALLY_ENCLOSED_BY = 'NONE' 
+ TRIM_SPACE = FALSE 
+ ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE 
+ ESCAPE = 'NONE' 
+ ESCAPE_UNENCLOSED_FIELD = '\134' 
+ DATE_FORMAT = 'AUTO' 
+ TIMESTAMP_FORMAT = 'AUTO' 
+ NULL_IF = ('\\N');
+
+--Create a Named Internal Stage
+CREATE STAGE "ANALYTICS_DB"."CITIBIKE".SNFK_INTERNAL_STAGE 
+COMMENT = 'Snowflake Managed Named Internal Stage';
+
+/*  Finally, let's load the data.  
+	Obtaining Citi Bike Data Files
+    Currently this https://ride.citibikenyc.com/system-data page
+    takes you to the s3 bucket of data files
+    https://s3.amazonaws.com/tripdata/index.html
+*/
+
+/*	Use PUT from Snowsql to load the data
+	TIP1:  Remember PUT CANNOT be used from the web interface
+	Windows PUT Syntax assumping you have placed all the Citibike
+	Files you want to load into c:|temp directory
+	***USE THIS ON YOUR WINDOWS OR MACOS COMMAND LINE
+	PUT file://c:\temp\*.* @SNFK_INTERNAL_STAGE
+	
+*/
+
+
+/*	If you wanted to load multiple files into Stage from the /tmp directory you
+	could do it like this on a Mac from Snowsql if you have extracted csv files.
+	TIP1 - do not forget the ; at the end of the statement.  otherwise snowsql will not execute.
+	TIP2 - realize that if you have a lot of files or large files the interface will take awhile and not 
+	give any confirmation until its all done.
+	
+	***USE THIS ON YOUR WINDOWS OR MACOS COMMAND LINE
+	PUT file:///tmp/*.csv @SNFK_INTERNAL_STAGE;
+*/
+
+
+/*	If you wanted to load just 1 file into the Stage then you
+	could do it like this on a Mac from Snowsql
+	PUT on my mac with the full path of the file.   
+	
+	***USE THIS ON YOUR WINDOWS OR MACOS COMMAND LINE
+	PUT file:///tmp/JC-202105-citibike-tripdata.csv @SNFK_INTERNAL_STAGE;
+*/
+	                                       
+/*  Here is the example of the response when I performed the 
++---------------------------------+------------------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+| source                          | target                             | source_size | target_size | source_compression | target_compression | status   | message |
+|---------------------------------+------------------------------------+-------------+-------------+--------------------+--------------------+----------+---------|
+| JC-202105-citibike-tripdata.csv | JC-202105-citibike-tripdata.csv.gz |     7969936 |     1214736 | NONE               | GZIP               | UPLOADED |         |
++---------------------------------+------------------------------------+-------------+-------------+--------------------+--------------------+----------+---------+                             
+*/
+	
+
+/*  After the PUT has executed successfully than you can do 
+	a LIST of the files.  IF you are in another database or schema than make sure you use the full path
+*/
+LIST @SNFK_INTERNAL_STAGE;
+LIST @ANALYTICS_DB.CITIBIKE.SNFK_INTERNAL_STAGE;
+
+/*	Now that you have verified the files are on the Internal stage
+	Let's use the COPY INTO Command to load the files into the
+	CITIBIKE_NYC table
+	TIP1 - Make sure the quotes came over correctly.  Some editors annoyingly convert ',' to ’,’ WHICH IS NOT THE SAME!
+*/
+
+COPY INTO CITIBIKE_NYC FROM @SNFK_INTERNAL_STAGE FILE_FORMAT=CSV_FILE_FORMAT;
+
+/*  You have done it and loaded the Citibike table with data.
+	Let's do a simple Select on the table to verify it was loaded
+*/
+
+SELECT * FROM ANALYTICS_DB.CITIBIKE.CITIBIKE_NYC;
+
+/*  This is great - You now loaded the new table CITIBIKE_NYC!
+	Let's have some fun and create a clone of this table which is one of Snowflake's best features.
+	Just run the command below to create a TRIPS table from the CITIBIKE_NYC table.
+
+*/
+CREATE TABLE TRIPS CLONE CITIBIKE_NYC;
+
+/*	If you want - check out how the clone is exactly the same with the MINUS Comparison.
+*/
+select * from TRIPS MINUS select * from CITIBIKE_NYC;
+
+/*  Final Tip for Chapter 12.
+	TIP1 - Make sure when you are done with loading on an INTERNAL Stage that you remove the files.
+	To Remove all of them you could do this:  REMOVE @SNFK_INTERNAL_STAGE;
+	If you DO NOT remove them and load Terabytes, etc. of data this will start to add up for your 
+	Snowflake Storage Costs!
+*/

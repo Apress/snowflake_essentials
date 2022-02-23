@@ -1,0 +1,49 @@
+-- Chapter 7:
+
+-- 7-1: 
+
+CREATE USER username;
+
+-- 7-2: 
+
+CREATE USER test user PASSWORD = ‘c0mPl#x p4s$woRD g03s hEr#’;
+
+-- 7-3: 
+
+CREATE USER test user RSA_PUBLIC_KEY = ‘MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoLDhkm8wuCaA3gpe7QYWIuw8zwQJsNcTqkFGXnvrzcW+00DGhK3s5e5N0OA+Jp8//FFHlKRp1l19bB2H/BfuCTOOuacJrRen60Jf2SCKy+qqws7aT8sl9D0P2f82ClKBNncawHM1t4qdjvAwunz/GX2CBz515Qo0pp43h0dVltr5YfUWMEHF6eMsGgOMUYBtR96jDMWYavRKgg1J8vmjJ+CK2X1Sc3D+JAn7IRaYltHhXeHh9f3doM90Aph+kiRLwlY1w5SQI+7QNoxGaGoQffXfvvrjLUfbmuau2RPkJUKGS81TKJr4SRdyfKPDQI7P+eWsMoqqhaYJFAR0lK0aSwIDAQAB’;
+
+-- 7-4: 
+
+CREATE NETWORK POLICY MY_POLICY ALLOWED_IP_LIST = ('ipaddr1','ipaddr2',...) BLOCKED_IP_LIST = (ipaddr1','ipaddr2',...);
+
+-- 7-5: 
+
+CREATE OR REPLACE MASKING POLICY ssn_mask AS (ssn STRING0 RETURNS STRING -> CASE WHEN CURRENT_ROLE() IN ('BANK_MANAGER') THEN son WHEN CURRENT_ROLE in ('BANK_TELLER') THEN 'XXX-XX-' || SUBSTR(ssn, 8, 4) ELSE 'XXX-XX-XXXX' END;
+
+-- 7-6: 
+
+ALTER TABLE user_info MODIFY COLUMN sun SET MASKING POLICY ssn_mask;
+
+-- 7-7: 
+
+SELECT col1, col2 FROM organization O JOIN departments D ON o.department = D.department;
+
+-- 7-8: 
+
+SELECT col1, col2 FROM organization O JOIN departments D ON O.department = D.department AND D.role_name = CURRENT_ROLE();
+
+-- 7-9: 
+
+CREATE TABLE departments (department VARCHAR, role_name VARCHAR);
+
+-- 7-10: 
+
+INSERT INTO departments (department, role_name) VALUES ('HR','HR_ADMIN'),('PRODUCTS','PRODUCT_ADMIN'),('MARKETING','MKTG_ANALYTICS');
+
+-- 7-11: 
+
+CREATE ROW ACCESS POLICY department_policy AS (dept VARCHAR) RETURNS BOOLEAN -> 'CEO_ROLE' = CURRENT_ROLE() OR EXISTS (SELECT 1 FROM departments WHERE role_name = CURRENT_ROLE() AND department = dept);
+
+-- 7-12: 
+
+ALTER TABLE organization ADD ROW ACCESS POLICY department_policy ON (department);
